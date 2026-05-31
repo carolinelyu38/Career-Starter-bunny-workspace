@@ -28,4 +28,5 @@ Your task list shows up on a calendar. Click a day to expand it, and click a tas
    - Once connected, you are free to use everything. A faster model means less waiting.
    - Tip: the example tasks are intentionally generous and broad. Being specific gets you much better answers.
 6. Why I built it: I made this to help career newcomers get up to speed faster. It is not meant for experts. If it gives you even a little help finding your footing, that is the whole point. Feel free to change it into whatever fits you better.
+
 License:MIT. Free to use, modify, and share.
