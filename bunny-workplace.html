@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EA Workspace</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+:root{--bg:#0f0f13;--panel:#16161d;--card:#1c1c26;--border:#2a2a3a;--accent:#c8a96e;--accentSoft:#c8a96e22;--accentGrad:linear-gradient(135deg,#c8a96e,#d8bd86);--onAccent:#111;--text:#e8e4d9;--muted:#6b6880;--radius:11px;--bgGrad:none;--font:'DM Sans','Noto Sans SC',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);height:100vh;overflow:hidden;background-attachment:fixed;}
+::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+input,select,button{font-family:inherit;outline:none;}input::placeholder{color:var(--muted);}
+.overlay{position:fixed;inset:0;background:rgba(8,8,12,.86);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:18px;width:100%;max-width:480px;padding:30px;animation:rise .3s ease;max-height:94vh;overflow-y:auto;}
+@keyframes rise{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:none;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.modal h1{font-size:21px;color:var(--accent);margin-bottom:6px;}
+.modal .sub{color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.6;}
+.field{margin-bottom:15px;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;}
+.field input,.field select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:11px 13px;color:var(--text);font-size:14px;color-scheme:dark;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5;}
+.btn{background:var(--accentGrad);color:var(--onAccent);border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;width:100%;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.status{margin-top:14px;font-size:13px;padding:11px 14px;border-radius:9px;line-height:1.5;display:none;word-break:break-word;}
+.status.show{display:block;}
+.status.ok{background:#6fcf7415;border:1px solid #6fcf7455;color:#6fcf74;}
+.status.err{background:#ff707015;border:1px solid #ff707055;color:#ff7070;}
+.status.load{background:var(--accentSoft);border:1px solid var(--accent);color:var(--accent);}
+.cors-note{background:#f5a62311;border:1px solid #f5a62344;border-radius:9px;padding:11px 13px;font-size:11.5px;color:#f5c97a;line-height:1.6;margin-top:16px;}
+.langtoggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:18px;width:fit-content;}
+.langtoggle button{background:transparent;color:var(--muted);border:none;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.langtoggle button.on{background:var(--accentGrad);color:var(--onAccent);}
+.app{display:none;height:100vh;flex-direction:column;}.app.show{display:flex;}
+.topbar{border-bottom:1px solid var(--border);background:var(--panel);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.topbar .title{font-size:18px;font-weight:700;color:var(--accent);}
+.topbar .meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.topbar .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.seg{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.seg button{background:transparent;color:var(--muted);border:none;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+.seg button.on{background:var(--accentGrad);color:var(--onAccent);}
+.add-btn{background:var(--accentGrad);color:var(--onAccent);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;}
+.icon-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 13px;font-size:12.5px;cursor:pointer;}
+.addbar{background:var(--panel);border-bottom:1px solid var(--border);padding:16px 22px;display:none;gap:12px;flex-wrap:wrap;align-items:flex-end;animation:rise .2s ease;}
+.addbar.show{display:flex;}
+.addbar .ff{display:flex;flex-direction:column;gap:4px;}.addbar .ff span{font-size:11px;color:var(--muted);}
+.addbar input,.addbar select{background:var(--card);border:1px solid var(--border);border-radius:7px;padding:8px 11px;color:var(--text);font-size:13px;color-scheme:dark;}
+.body{display:flex;flex:1;min-height:0;}
+.sidebar{width:312px;min-width:250px;border-right:1px solid var(--border);background:var(--panel);overflow-y:auto;padding:16px 14px;}
+.daygroup{margin-bottom:18px;}.daylabel{font-size:11px;color:var(--accent);letter-spacing:.1em;font-weight:700;margin-bottom:8px;padding-left:2px;}
+.task{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:.18s;}
+.task.active{background:var(--accentSoft);border-color:var(--accent);}
+.task .t-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+.task .t-title{font-weight:600;font-size:14px;flex:1;}
+.task .t-row{display:flex;align-items:center;margin-top:8px;gap:10px;}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap;}
+.pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;cursor:pointer;white-space:nowrap;user-select:none;}
+.main{flex:1;overflow-y:auto;padding:24px 28px;background:transparent;}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;gap:13px;opacity:.6;}
+.detail{max-width:740px;animation:fade .25s ease;}
+.detail h2{font-size:22px;font-weight:700;margin-bottom:7px;}
+.detail .d-meta{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap;}
+.detail .d-note{margin-top:13px;padding:10px 14px;background:var(--accentSoft);border:1px solid var(--accent);border-radius:var(--radius);font-size:12px;color:var(--accent);}
+.sec{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:15px 17px;margin-top:11px;}
+.sec.err-b{border-color:#ff4d4d55;}
+.sec .s-head{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--accent);margin-bottom:9px;}
+.sec .s-body{font-size:13.5px;line-height:1.75;white-space:pre-wrap;}
+.sec .s-load{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px;}
+.sec .s-err{color:#ff7070;font-size:12.5px;line-height:1.6;margin-bottom:9px;word-break:break-word;}
+.retry{background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;}
+.calhead{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.navbtn{background:transparent;border:1px solid var(--border);color:var(--text);border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;}
+.calgrid{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.calrow{display:grid;grid-template-columns:repeat(7,1fr);}
+.calwk{padding:10px 0;text-align:center;font-size:12px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);}
+.calcell{height:104px;overflow:hidden;padding:6px 6px 8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);transition:background .15s;}
+.calcell:hover{background:var(--accentSoft);}
+.calcell.today{background:var(--accentSoft);}
+.calchip{border-radius:6px;padding:3px 6px;margin-bottom:3px;font-size:11px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tmodal-ov{position:fixed;inset:0;background:rgba(8,8,12,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;z-index:50;padding:40px 18px;overflow-y:auto;}
+.tmodal{background:var(--panel);border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);padding:22px 24px;max-width:760px;width:100%;animation:fade .2s;}
+.sharemodal-ov{position:fixed;inset:0;background:rgba(8,8,12,.8);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:60;padding:18px;}
+.sharemodal{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:520px;width:100%;animation:fade .2s;}
+/* theme palette */
+.colpick{flex:1;text-align:center;font-size:12px;color:var(--muted);}
+.colpick input[type=color]{width:100%;height:46px;border:1px solid var(--border);border-radius:10px;background:none;cursor:pointer;margin-top:6px;padding:3px;}
+.presetchip{padding:7px 13px;border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,.45);}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="connOverlay">
+  <div class="modal">
+    <div class="langtoggle"><button data-l="zh" class="on">中文</button><button data-l="en">EN</button></div>
+    <h1 id="m_title">✦ 连接你的 AI</h1>
+    <div class="sub" id="m_sub"></div>
+    <div class="field"><label id="m_lpreset"></label>
+      <select id="presetSel">
+        <option value="gemini">Google Gemini</option>
+        <option value="anthropic">Anthropic Claude</option>
+        <option value="openai">OpenAI</option>
+        <option value="deepseek">DeepSeek</option>
+        <option value="siliconflow">SiliconFlow 硅基流动</option>
+        <option value="">— 自定义 —</option>
+      </select>
+    </div>
+    <div class="field"><label id="m_lformat"></label>
+      <select id="formatSel"><option value="gemini">Gemini</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
+    </div>
+    <div class="field"><label id="m_lendpoint"></label><input id="endpointInp" placeholder="https://generativelanguage.googleapis.com/v1beta"><div class="hint" id="m_hendpoint"></div></div>
+    <div class="field"><label id="m_lkey"></label><input id="keyInp" type="password" placeholder="AIza... / sk-..."><div class="hint" id="m_hkey"></div></div>
+    <div class="field"><label id="m_lmodel"></label><input id="modelInp" placeholder="gemini-1.5-flash"></div>
+    <button class="btn" id="connectBtn"></button>
+    <div class="status" id="connStatus"></div>
+    <div class="cors-note" id="m_cors"></div>
+  </div>
+</div>
+
+<!-- profile modal -->
+<div class="overlay" id="profileOverlay" style="display:none;">
+  <div class="modal" style="max-width:420px;">
+    <h1 id="pf_title">👤</h1>
+    <div class="sub" id="pf_sub"></div>
+    <div class="field"><label id="pf_lnick"></label><input id="pf_nick" placeholder="Bunny"></div>
+    <div class="field"><label id="pf_ljob"></label><input id="pf_job"></div>
+    <div class="field"><label id="pf_lfield"></label><input id="pf_field"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn" id="pf_save" style="flex:1;"></button>
+      <button class="icon-btn" id="pf_close"></button>
+    </div>
+  </div>
+</div>
+
+<!-- theme palette modal -->
+<div class="overlay" id="themeOverlay" style="display:none;">
+  <div class="modal" style="max-width:430px;">
+    <h1 id="th_title">🎨</h1>
+    <div class="sub" id="th_sub"></div>
+    <div id="th_preview" style="height:64px;border-radius:14px;margin-bottom:18px;border:1px solid var(--border);"></div>
+    <div style="display:flex;gap:14px;margin-bottom:14px;">
+      <label class="colpick"><span id="th_c1"></span><input type="color" id="col1" value="#ff5f6d"></label>
+      <label class="colpick"><span id="th_c2"></span><input type="color" id="col2" value="#ffc371"></label>
+      <label class="colpick" id="col3wrap"><span id="th_c3"></span><input type="color" id="col3" value="#7a00ff"></label>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:16px;cursor:pointer;"><input type="checkbox" id="use3"> <span id="th_use3"></span></label>
+    <div id="th_presetlab" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
+    <div id="presetChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn" id="th_apply" style="flex:1;"></button>
+      <button class="icon-btn" id="th_reset"></button>
+      <button class="icon-btn" id="th_close"></button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <div class="topbar">
+    <div><div class="title" id="a_title">✦ 总助智能工作台</div><div class="meta" id="connMeta"></div></div>
+    <div class="actions">
+      <button class="icon-btn" id="profileBtn"></button>
+      <button class="icon-btn" id="themeBtn"></button>
+      <div class="seg" id="viewSeg"><button data-v="list" class="on"></button><button data-v="calendar"></button></div>
+      <div class="seg langseg"><button data-l="zh" class="on">中文</button><button data-l="en">EN</button></div>
+      <button class="icon-btn" id="reconnectBtn"></button>
+      <button class="add-btn" id="toggleAddBtn"></button>
+    </div>
+  </div>
+  <div class="addbar" id="addbar">
+    <div class="ff"><span id="a_lname"></span><input id="f_title" style="min-width:220px"></div>
+    <div class="ff"><span id="a_ldate"></span><input id="f_date" type="date"></div>
+    <div class="ff"><span id="a_ltime"></span><input id="f_time" type="time"></div>
+    <div class="ff"><span id="a_ldue"></span><input id="f_due" type="datetime-local"></div>
+    <div class="ff"><span id="a_lpri"></span><select id="f_priority"><option value="high"></option><option value="medium" selected></option><option value="low"></option></select></div>
+    <button class="add-btn" id="confirmAddBtn"></button>
+    <button class="icon-btn" id="cancelAddBtn"></button>
+  </div>
+  <div class="body" id="listView"><div class="sidebar" id="sidebar"></div><div class="main" id="main"></div></div>
+  <div class="main" id="calView" style="display:none;"></div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="dayRoot"></div>
+<div id="shareRoot"></div>
+
+<script>
+const store=(()=>{let mem={},ls=false;try{localStorage.setItem('__t','1');localStorage.removeItem('__t');ls=true;}catch(e){}
+  return{get(k){try{return ls?localStorage.getItem(k):(mem[k]??null);}catch(e){return mem[k]??null;}},
+  set(k,v){try{ls?localStorage.setItem(k,v):(mem[k]=v);}catch(e){mem[k]=v;}}};})();
+
+const I18N={
+  zh:{
+    m_title:"✦ 连接你的 AI",
+    m_sub:"首次使用请填写你的 AI 接口信息。连接成功后即可使用排时间表、日历、任务指南等功能。信息只存在你本地浏览器，不会上传。",
+    m_lpreset:"选择大模型（自动填好地址）",m_lformat:"接口格式",m_lendpoint:"接口地址 (API 网址)",
+    m_hendpoint:"选了大模型会自动填好，一般不用改。",m_lkey:"API Key（密钥）",
+    m_hkey:"Gemini 免费申请：aistudio.google.com/apikey",m_lmodel:"模型名称",connect:"测试并连接 →",
+    cors:"⚠ 提示：双击本地文件打开时，OpenAI / DeepSeek / 硅基流动常被浏览器跨域拦截。推荐用 Gemini 或 Claude，可浏览器直连。",
+    a_title:"✦ Bunny 工作台",reconnect:"⚙ 重连",newTask:"+ 新增任务",themeBtn:"🎨 主题",profileBtn:"👤 我的",ask:"💬 追问",askPh:"输入你想追问的问题…",askSend:"发送",translating:"翻译中…",greet:n=>`你好，${n} ✦`,
+    a_lname:"任务名称",a_ldate:"日期",a_ltime:"时间",a_lpri:"优先级",a_ldue:"截止时间（选填）",dueLabel:"截止",
+    high:"紧急",medium:"中等",low:"低",pending:"待处理",inprogress:"进行中",done:"已完成",
+    confirm:"确认添加 →",cancel:"取消",phName:"例：安排高管出行",connected:"已连接 · ",
+    count:n=>`共 ${n} 项任务`,emptyT:"选择一个任务",emptyS:"AI 将为你提供五维工作指南",
+    note:"✦ AI 正在根据任务内容生成五维工作指南",clickStatus:"点击切换状态",analyzing:"正在分析…",
+    retry:"↻ 重试",waiting:"等待中…",noTasks:"还没有任务。<br>点右上角「+ 新增任务」开始。",del:"删除",
+    needFill:"请把接口地址、API Key、模型名称都填好。",testing:"正在测试连接…",success:"✓ 连接成功！正在进入…",fail:"✗ 连接失败：",
+    delConfirm:"删除这个任务？",needTask:"请填写任务名称、日期和时间",
+    viewList:"列表",viewCal:"日历",today:"今天",share:"分享日历",
+    moreTasks:n=>`+${n} 更多`,shareTitle:"分享你的日历",download:"下载图片",nativeShare:"分享到…",
+    shareTip:"长按图片可保存或转发给朋友",close:"关闭",
+    th_title:"🎨 选择你的配色",th_sub:"挑 2-3 个颜色，页面就会生成你专属的渐变风格。",
+    th_c1:"颜色一",th_c2:"颜色二",th_c3:"颜色三",th_use3:"加上第三个颜色",th_presetlab:"或选一个搭配好的：",pf_title:"👤 个性化设置",pf_sub:"填写后，AI 会结合你的领域给出更贴合的答案。",pf_nick:"昵称",pf_job:"职业",pf_field:"从事领域",pf_save:"保存",pf_nickph:"Bunny",pf_jobph:"例：总经理助理",pf_fieldph:"例：互联网 / 金融 / 医疗",
+    apply:"应用配色",reset:"重置",
+    weekdays:["日","一","二","三","四","五","六"],monthLabel:(y,m)=>`${y}年${m+1}月`,
+    sections:[["what","📌","这个任务是做什么的"],["how","🛠️","该怎么做（步骤）"],["resources","📚","可用资料"],["tools","🔧","推荐工具"],["template","📄","参考模板"]],
+  },
+  en:{
+    m_title:"✦ Connect your AI",
+    m_sub:"First time? Enter your AI connection details. Once connected you can schedule tasks, use the calendar and get guidance. Everything stays local in your browser.",
+    m_lpreset:"Choose a model (auto-fills address)",m_lformat:"API format",m_lendpoint:"API endpoint URL",
+    m_hendpoint:"Auto-filled when you pick a model; usually no need to change.",m_lkey:"API Key",
+    m_hkey:"Get a free Gemini key: aistudio.google.com/apikey",m_lmodel:"Model name",connect:"Test & Connect →",
+    cors:"⚠ Note: opening the file locally, OpenAI / DeepSeek / SiliconFlow are often blocked by the browser (CORS). Gemini or Claude work directly in the browser.",
+    a_title:"✦ Bunny Workspace",reconnect:"⚙ Reconnect",newTask:"+ New Task",themeBtn:"🎨 Theme",profileBtn:"👤 Me",ask:"💬 Ask",askPh:"Type a follow-up question…",askSend:"Send",translating:"Translating…",greet:n=>`Hi ${n} ✦`,
+    a_lname:"Task name",a_ldate:"Date",a_ltime:"Time",a_lpri:"Priority",a_ldue:"Deadline (optional)",dueLabel:"Due",
+    high:"High",medium:"Medium",low:"Low",pending:"To do",inprogress:"In progress",done:"Done",
+    confirm:"Add →",cancel:"Cancel",phName:"e.g. Arrange executive travel",connected:"Connected · ",
+    count:n=>`${n} task${n!==1?"s":""}`,emptyT:"Select a task",emptyS:"AI will give you a five-part work guide",
+    note:"✦ AI is generating a five-part guide for this task",clickStatus:"Click to change status",analyzing:"Analyzing…",
+    retry:"↻ Retry",waiting:"Waiting…",noTasks:"No tasks yet.<br>Click \"+ New Task\" to start.",del:"Delete",
+    needFill:"Please fill in endpoint, API Key and model name.",testing:"Testing connection…",success:"✓ Connected! Entering…",fail:"✗ Connection failed: ",
+    delConfirm:"Delete this task?",needTask:"Please fill in task name, date and time",
+    viewList:"List",viewCal:"Calendar",today:"Today",share:"Share calendar",
+    moreTasks:n=>`+${n} more`,shareTitle:"Share your calendar",download:"Download image",nativeShare:"Share to…",
+    shareTip:"Long-press the image to save or forward it",close:"Close",
+    th_title:"🎨 Pick your colors",th_sub:"Choose 2-3 colors and the page builds your own gradient style.",
+    th_c1:"Color 1",th_c2:"Color 2",th_c3:"Color 3",th_use3:"Add a third color",th_presetlab:"Or pick a ready-made combo:",pf_title:"👤 Personalize",pf_sub:"Fill this in and the AI tailors answers to your field.",pf_nick:"Nickname",pf_job:"Profession",pf_field:"Industry / field",pf_save:"Save",pf_nickph:"Bunny",pf_jobph:"e.g. Executive Assistant",pf_fieldph:"e.g. Tech / Finance / Healthcare",
+    apply:"Apply colors",reset:"Reset",
+    weekdays:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],monthLabel:(y,m)=>new Date(y,m,1).toLocaleString("en-US",{month:"long",year:"numeric"}),
+    sections:[["what","📌","What this task is"],["how","🛠️","How to do it (steps)"],["resources","📚","Useful references"],["tools","🔧","Recommended tools"],["template","📄","Template to reuse"]],
+  }
+};
+const PRESETS={
+  gemini:{format:'gemini',endpoint:'https://generativelanguage.googleapis.com/v1beta',model:'gemini-1.5-flash'},
+  anthropic:{format:'anthropic',endpoint:'https://api.anthropic.com',model:'claude-3-5-sonnet-20241022'},
+  openai:{format:'openai',endpoint:'https://api.openai.com/v1',model:'gpt-4o-mini'},
+  deepseek:{format:'openai',endpoint:'https://api.deepseek.com',model:'deepseek-chat'},
+  siliconflow:{format:'openai',endpoint:'https://api.siliconflow.cn/v1',model:'Qwen/Qwen2.5-7B-Instruct'},
+};
+const PRESETS_PAL=[
+  {zh:'日落',en:'Sunset',cols:['#ff5f6d','#ffc371']},
+  {zh:'海洋',en:'Ocean',cols:['#2193b0','#6dd5ed']},
+  {zh:'粉色毛绒',en:'Pink Fluff',cols:['#ffafbd','#ffc3a0','#ffd1dc']},
+  {zh:'赛博朋克',en:'Cyberpunk',cols:['#00f0ff','#ff00e0','#7a00ff']},
+  {zh:'森林',en:'Forest',cols:['#134e5e','#71b280']},
+  {zh:'紫梦',en:'Purple Dream',cols:['#7028e4','#e5b2ca']},
+  {zh:'蜜桃',en:'Peach',cols:['#ffecd2','#fcb69f']},
+  {zh:'午夜',en:'Midnight',cols:['#232526','#414345','#6dd5ed']},
+];
+const PRI={high:['#ff4d4d','#ff7070'],medium:['#f5a623','#f5a623'],low:['#4caf50','#6fcf74']};
+const STATUS_ORDER=['pending','inprogress','done'];
+const STATUS_COLOR={pending:'#9a97ad',inprogress:'#c8a96e',done:'#6fcf74'};
+const DEFAULT_THEME={bg:"#0f0f13",panel:"#16161d",card:"#1c1c26",border:"#2a2a3a",accent:"#c8a96e",accentGrad:"linear-gradient(135deg,#c8a96e,#d8bd86)",onAccent:"#111",text:"#e8e4d9",muted:"#6b6880",radius:11,bgGrad:"none",name:"Default",palette:null};
+
+/* color helpers */
+function h2r(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function r2h(a){return '#'+a.map(x=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join('');}
+function mix(a,b,t){const A=h2r(a),B=h2r(b);return r2h(A.map((x,i)=>x+(B[i]-x)*t));}
+function darken(h,t){return mix(h,'#000000',t);}
+function lighten(h,t){return mix(h,'#ffffff',t);}
+function lum(h){const v=h2r(h).map(x=>{x/=255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4);});return .2126*v[0]+.7152*v[1]+.0722*v[2];}
+function sat(h){const v=h2r(h).map(x=>x/255);const mx=Math.max(...v),mn=Math.min(...v);return mx===0?0:(mx-mn)/mx;}
+function deriveTheme(pal){
+  pal=pal.slice(0,3);
+  let accent=pal.slice().sort((a,b)=>(sat(b)+lum(b))-(sat(a)+lum(a)))[0];
+  if(lum(accent)<0.16) accent=lighten(accent,0.3);
+  let blend=pal.reduce((a,c,i)=>i===0?c:mix(a,c,0.5));
+  const bgStops=pal.map(c=>darken(c,0.82));
+  const bgGrad=`linear-gradient(140deg, ${bgStops.join(', ')})`;
+  const accentGrad=`linear-gradient(135deg, ${pal.join(', ')})`;
+  return {bg:bgStops[0],panel:darken(blend,0.76),card:darken(blend,0.68),border:lighten(darken(blend,0.62),0.10),
+    accent,accentGrad,onAccent:lum(accent)>0.6?'#111':'#fff',text:'#f3efe6',muted:mix('#f3efe6',darken(blend,0.68),0.55),
+    radius:13,bgGrad,name:'Custom',palette:pal};
+}
+
+let lang=store.get('ta_lang')||'zh';
+let view='list';
+const now=new Date();
+let cal={y:now.getFullYear(),m:now.getMonth()};
+let theme={...DEFAULT_THEME};
+let profile={nick:'Bunny',job:'',field:''};
+let state={conn:null,tasks:[],ai:{},qa:{},titleTr:{},loading:{},selectedId:null,modalId:null,nextId:100};
+try{const c=store.get('ta_conn');if(c)state.conn=JSON.parse(c);
+  const tk=store.get('ta_tasks');if(tk)state.tasks=JSON.parse(tk);
+  const n=store.get('ta_nextid');if(n)state.nextId=+n;
+  const th=store.get('ta_theme');if(th)theme={...DEFAULT_THEME,...JSON.parse(th)};
+  const pf=store.get('ta_profile');if(pf)profile={...profile,...JSON.parse(pf)};}catch(e){}
+
+const $=id=>document.getElementById(id);
+const L=()=>I18N[lang];
+const pad2=n=>String(n).padStart(2,'0');
+const dstr=(y,m,d)=>`${y}-${pad2(m+1)}-${pad2(d)}`;
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function cleanText(t){return String(t).replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/<thinking>[\s\S]*?<\/thinking>/gi,'').replace(/\*\*/g,'').replace(/__/g,'').replace(/(^|\n)\s*#{1,6}\s*/g,'$1').replace(/`/g,'').replace(/(^|\n)\s*[-*]\s+/g,'$1\u2022 ').trim();}
+function displayTitle(task){return (state.titleTr[task.id]&&state.titleTr[task.id][lang])||task.title;}
+function fmtDue(v){if(!v)return'';const d=new Date(v);if(isNaN(d))return esc(v);return `${pad2(d.getMonth()+1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;}
+function monthMatrix(y,m){const start=new Date(y,m,1).getDay();const days=new Date(y,m+1,0).getDate();
+  const c=[];for(let i=0;i<start;i++)c.push(null);for(let d=1;d<=days;d++)c.push(d);while(c.length%7)c.push(null);
+  const w=[];for(let i=0;i<c.length;i+=7)w.push(c.slice(i,i+7));return w;}
+
+function updateMeta(){if(state.conn)$('connMeta').textContent=L().greet(profile.nick||'Bunny')+(theme.palette?('  🎨 '+theme.palette.join(' ')):'');}
+function applyTheme(){
+  const r=document.documentElement.style;
+  r.setProperty('--bg',theme.bg);r.setProperty('--panel',theme.panel);r.setProperty('--card',theme.card);
+  r.setProperty('--border',theme.border);r.setProperty('--accent',theme.accent);r.setProperty('--accentSoft',theme.accent+'22');
+  r.setProperty('--accentGrad',theme.accentGrad);r.setProperty('--onAccent',theme.onAccent);
+  r.setProperty('--text',theme.text);r.setProperty('--muted',theme.muted);r.setProperty('--radius',(theme.radius||12)+'px');
+  document.body.style.backgroundImage=theme.bgGrad||'none';
+  updateMeta();
+}
+
+function promptFor(title,key){
+  const who = lang==='zh'
+    ? `求助者昵称「${profile.nick||'Bunny'}」${profile.job?('，职业是'+profile.job):''}${profile.field?('，从事'+profile.field+'领域'):''}。${profile.field?'请结合该领域的实际情况给出更贴合的建议。':''}`
+    : `The person is "${profile.nick||'Bunny'}"${profile.job?(', a '+profile.job):''}${profile.field?(', working in '+profile.field):''}.${profile.field?' Tailor the advice to that field.':''}`;
+  const role=lang==='zh'
+    ?`你是一位经验丰富的职场导师，正在帮助一位助理。${who}任务名称：「${title}」。要求：用中文回答；只给最终的专业答案，不要写思考过程、推理或开场白；不要使用任何 Markdown 或加粗（不要出现 * 号 或 # 号），纯文本；务必在篇幅内把话说完整，最后一句必须是完整句子。`
+    :`You are an experienced workplace mentor helping an assistant. ${who} Task: "${title}". Rules: answer in English; give ONLY the final professional answer, no reasoning or preamble; do NOT use any Markdown or bold (no * or #), plain text only; finish completely and end on a complete sentence.`;
+  const m=lang==='zh'?{
+    what:`${role}简洁解释这个任务做什么、目的和重要性，100字以内。`,
+    how:`${role}列出关键步骤，3-5步，每步一行加序号。`,
+    resources:`${role}列出可参考的资料/文件/信息来源，格式「• 名称：用途」，3-5条。`,
+    tools:`${role}列出可用的软件工具或平台，格式「• 工具：用途」，3-5条。`,
+    template:`${role}给出一个可直接套用的简单文字模板或格式示例，排版清晰。`,
+  }:{
+    what:`${role}Briefly explain what this task is, its purpose and importance, under 80 words.`,
+    how:`${role}List the key steps, 3-5 steps, one per line, numbered.`,
+    resources:`${role}List references/documents/sources to use, format "• Name: purpose", 3-5 items.`,
+    tools:`${role}List software tools or platforms to use, format "• Tool: purpose", 3-5 items.`,
+    template:`${role}Provide a simple ready-to-use text template or format example, clearly laid out.`,
+  };return m[key];}
+
+async function callLLM(content){
+  const c=state.conn,ep=c.endpoint.replace(/\/+$/,'');
+  if(c.format==='gemini'){
+    const url=`${ep}/models/${c.model}:generateContent?key=${encodeURIComponent(c.apiKey)}`;
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:content}]}],generationConfig:{maxOutputTokens:2048,temperature:0.6}})});
+    if(!res.ok)throw new Error('HTTP '+res.status+'：'+(await res.text()).slice(0,300));
+    const d=await res.json();return d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'(empty)';
+  }else if(c.format==='anthropic'){
+    const url=/\/messages$/.test(ep)?ep:ep+'/v1/messages';
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':c.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:c.model,max_tokens:2048,messages:[{role:'user',content}]})});
+    if(!res.ok)throw new Error('HTTP '+res.status+'：'+(await res.text()).slice(0,300));
+    const d=await res.json();return (d.content||[]).map(b=>b.text||'').join('')||'(empty)';
+  }else{
+    const url=/(chat\/completions|completions)$/.test(ep)?ep:ep+'/chat/completions';
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+c.apiKey},body:JSON.stringify({model:c.model,max_tokens:2048,messages:[{role:'user',content}]})});
+    if(!res.ok)throw new Error('HTTP '+res.status+'：'+(await res.text()).slice(0,300));
+    const d=await res.json();return d.choices?.[0]?.message?.content||'(empty)';
+  }
+}
+
+function applyLang(){
+  const t=L();
+  ['m_title','m_sub','m_lpreset','m_lformat','m_lendpoint','m_hendpoint','m_lkey','m_hkey','m_lmodel','m_cors',
+   'th_title','th_sub','th_c1','th_c2','th_c3','th_use3','th_presetlab'].forEach(k=>{if($(k))$(k).textContent=t[k];});
+  $('connectBtn').textContent=t.connect;
+  $('a_title').textContent='✦ '+t.a_title.replace('✦ ','');
+  $('reconnectBtn').textContent=t.reconnect;$('toggleAddBtn').textContent=t.newTask;$('themeBtn').textContent=t.themeBtn;$('profileBtn').textContent=t.profileBtn;
+  $('pf_title').textContent=t.pf_title;$('pf_sub').textContent=t.pf_sub;$('pf_lnick').textContent=t.pf_nick;$('pf_ljob').textContent=t.pf_job;$('pf_lfield').textContent=t.pf_field;$('pf_save').textContent=t.pf_save;$('pf_close').textContent=t.close;
+  $('pf_nick').placeholder=t.pf_nickph;$('pf_job').placeholder=t.pf_jobph;$('pf_field').placeholder=t.pf_fieldph;
+  $('a_lname').textContent=t.a_lname;$('a_ldate').textContent=t.a_ldate;$('a_ltime').textContent=t.a_ltime;$('a_lpri').textContent=t.a_lpri;$('a_ldue').textContent=t.a_ldue;
+  $('f_title').placeholder=t.phName;$('confirmAddBtn').textContent=t.confirm;$('cancelAddBtn').textContent=t.cancel;
+  const ps=$('f_priority').options;ps[0].text=t.high;ps[1].text=t.medium;ps[2].text=t.low;
+  $('th_apply').textContent=t.apply;$('th_reset').textContent=t.reset;$('th_close').textContent=t.close;
+  $('viewSeg').children[0].textContent=t.viewList;$('viewSeg').children[1].textContent=t.viewCal;
+  document.querySelectorAll('.langtoggle button,.langseg button').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
+  renderPresets();applyTheme();renderSidebar();renderMain();if(view==='calendar')renderCal();
+}
+document.querySelectorAll('.langtoggle button,.langseg button').forEach(b=>b.addEventListener('click',()=>{lang=b.dataset.l;store.set('ta_lang',lang);applyLang();
+  if(state.conn){translateTitles(state.tasks);const cur=state.tasks.find(x=>x.id===(state.modalId??state.selectedId));if(cur)ensureAI(cur);}
+}));
+
+/* connection */
+$('presetSel').addEventListener('change',e=>{const p=PRESETS[e.target.value];if(p){$('formatSel').value=p.format;$('endpointInp').value=p.endpoint;$('modelInp').value=p.model;}});
+function showStatus(type,msg){const el=$('connStatus');el.className='status show '+type;el.innerHTML=msg;}
+$('connectBtn').addEventListener('click',async()=>{
+  const conn={format:$('formatSel').value,endpoint:$('endpointInp').value.trim(),apiKey:$('keyInp').value.trim(),model:$('modelInp').value.trim()};
+  if(!conn.endpoint||!conn.apiKey||!conn.model){showStatus('err',L().needFill);return;}
+  $('connectBtn').disabled=true;showStatus('load','<span class="spin"></span> '+L().testing);state.conn=conn;
+  try{await callLLM(lang==='zh'?'回复两个字：你好':'Reply: hi');store.set('ta_conn',JSON.stringify(conn));
+    showStatus('ok',L().success);setTimeout(enterApp,700);
+  }catch(err){state.conn=null;showStatus('err',L().fail+err.message);$('connectBtn').disabled=false;}
+});
+function enterApp(){$('connOverlay').style.display='none';$('app').classList.add('show');applyLang();}
+$('reconnectBtn').addEventListener('click',()=>{$('app').classList.remove('show');$('connOverlay').style.display='flex';
+  $('connectBtn').disabled=false;$('connStatus').className='status';
+  if(state.conn){$('formatSel').value=state.conn.format;$('endpointInp').value=state.conn.endpoint;$('keyInp').value=state.conn.apiKey;$('modelInp').value=state.conn.model;}});
+
+/* profile */
+$('profileBtn').addEventListener('click',()=>{$('pf_nick').value=profile.nick||'';$('pf_job').value=profile.job||'';$('pf_field').value=profile.field||'';$('profileOverlay').style.display='flex';});
+$('pf_close').addEventListener('click',()=>$('profileOverlay').style.display='none');
+$('pf_save').addEventListener('click',()=>{profile={nick:$('pf_nick').value.trim()||'Bunny',job:$('pf_job').value.trim(),field:$('pf_field').value.trim()};
+  store.set('ta_profile',JSON.stringify(profile));$('profileOverlay').style.display='none';
+  state.ai={};state.qa={};updateMeta();renderMain();renderModal();});
+
+/* theme palette */
+function curPalette(){const p=[$('col1').value,$('col2').value];if($('use3').checked)p.push($('col3').value);return p;}
+function updatePreview(){$('th_preview').style.background=`linear-gradient(135deg, ${curPalette().join(', ')})`;}
+function renderPresets(){const t=L();
+  $('presetChips').innerHTML=PRESETS_PAL.map((p,i)=>`<button class="presetchip" data-i="${i}" style="background:linear-gradient(135deg,${p.cols.join(',')})">${p[lang]}</button>`).join('');
+  $('presetChips').querySelectorAll('.presetchip').forEach(b=>b.onclick=()=>{const p=PRESETS_PAL[+b.dataset.i];
+    $('col1').value=p.cols[0];$('col2').value=p.cols[1];
+    if(p.cols[2]){$('use3').checked=true;$('col3').value=p.cols[2];}else $('use3').checked=false;
+    $('col3wrap').style.opacity=$('use3').checked?1:.35;updatePreview();});}
+['col1','col2','col3'].forEach(id=>$(id).addEventListener('input',updatePreview));
+$('use3').addEventListener('change',()=>{$('col3wrap').style.opacity=$('use3').checked?1:.35;updatePreview();});
+$('themeBtn').addEventListener('click',()=>{
+  if(theme.palette){$('col1').value=theme.palette[0];$('col2').value=theme.palette[1]||'#ffc371';
+    if(theme.palette[2]){$('use3').checked=true;$('col3').value=theme.palette[2];}else $('use3').checked=false;}
+  $('col3wrap').style.opacity=$('use3').checked?1:.35;updatePreview();$('themeOverlay').style.display='flex';});
+$('th_apply').addEventListener('click',()=>{theme=deriveTheme(curPalette());store.set('ta_theme',JSON.stringify(theme));
+  applyTheme();renderSidebar();renderMain();if(view==='calendar')renderCal();$('themeOverlay').style.display='none';});
+$('th_reset').addEventListener('click',()=>{theme={...DEFAULT_THEME};store.set('ta_theme',JSON.stringify(theme));
+  applyTheme();renderSidebar();renderMain();if(view==='calendar')renderCal();$('themeOverlay').style.display='none';});
+$('th_close').addEventListener('click',()=>$('themeOverlay').style.display='none');
+
+/* view toggle */
+$('viewSeg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+  view=b.dataset.v;$('viewSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.v===view));
+  $('listView').style.display=view==='list'?'flex':'none';$('calView').style.display=view==='calendar'?'block':'none';
+  if(view==='calendar')renderCal();}));
+
+/* add */
+$('toggleAddBtn').addEventListener('click',()=>$('addbar').classList.toggle('show'));
+$('cancelAddBtn').addEventListener('click',()=>$('addbar').classList.remove('show'));
+$('confirmAddBtn').addEventListener('click',()=>{
+  const title=$('f_title').value.trim(),date=$('f_date').value,time=$('f_time').value;
+  if(!title||!date||!time){alert(L().needTask);return;}
+  const due=$('f_due').value;const task={id:state.nextId++,title,date,time,due,priority:$('f_priority').value,status:'pending'};
+  state.tasks.push(task);state.tasks.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));saveTasks();
+  $('f_title').value='';$('f_date').value='';$('f_time').value='';$('f_due').value='';$('addbar').classList.remove('show');
+  const d=new Date(date+'T00:00');cal={y:d.getFullYear(),m:d.getMonth()};renderSidebar();if(view==='calendar')renderCal();});
+function saveTasks(){store.set('ta_tasks',JSON.stringify(state.tasks));store.set('ta_nextid',String(state.nextId));}
+window.cycleStatus=(id,ev)=>{ev.stopPropagation();state.tasks=state.tasks.map(x=>x.id!==id?x:{...x,status:STATUS_ORDER[(STATUS_ORDER.indexOf(x.status)+1)%3]});saveTasks();renderSidebar();renderMain();if(view==='calendar')renderCal();if(state.modalId===id)renderModal();};
+window.delTask=(id,ev)=>{ev.stopPropagation();if(!confirm(L().delConfirm))return;state.tasks=state.tasks.filter(x=>x.id!==id);delete state.ai[id];saveTasks();
+  if(state.selectedId===id)state.selectedId=null;if(state.modalId===id){state.modalId=null;renderModal();}renderSidebar();renderMain();if(view==='calendar')renderCal();};
+
+/* AI — answers cached per language; fixed once generated */
+function aiL(id){state.ai[id]=state.ai[id]||{};state.ai[id][lang]=state.ai[id][lang]||{};return state.ai[id][lang];}
+async function genAnswers(task,onlyKey){
+  const id=task.id;aiL(id);state.loading[id]=state.loading[id]||{};
+  const list=onlyKey?L().sections.filter(s=>s[0]===onlyKey):L().sections;
+  list.forEach(s=>state.loading[id][s[0]]=true);renderMain();renderModal();
+  // make sure we have a title in this language
+  if(!(state.titleTr[id]&&state.titleTr[id][lang])) await translateTitles([task]);
+  const title=displayTitle(task);
+  for(const s of list){
+    try{state.ai[id][lang][s[0]]={ok:true,text:cleanText(await callLLM(promptFor(title,s[0])))};}
+    catch(e){state.ai[id][lang][s[0]]={ok:false,text:e.message};}
+    state.loading[id][s[0]]=false;renderMain();renderModal();
+  }
+}
+async function translateAnswers(task,fromLang){
+  const id=task.id;aiL(id);state.loading[id]=state.loading[id]||{};
+  const src=state.ai[id][fromLang];
+  L().sections.forEach(s=>state.loading[id][s[0]]=true);renderMain();renderModal();
+  for(const s of L().sections){
+    const k=s[0];const srcText=src&&src[k]&&src[k].ok?src[k].text:null;
+    if(srcText==null){ // nothing to translate from -> generate
+      try{state.ai[id][lang][k]={ok:true,text:cleanText(await callLLM(promptFor(displayTitle(task),k)))};}catch(e){state.ai[id][lang][k]={ok:false,text:e.message};}
+    }else{
+      const tp=lang==='zh'?`把下面内容翻译成中文，只输出翻译结果，保持纯文本、不要加粗或Markdown：\n\n${srcText}`
+                          :`Translate the following into English. Output only the translation, plain text, no bold or Markdown:\n\n${srcText}`;
+      try{state.ai[id][lang][k]={ok:true,text:cleanText(await callLLM(tp))};}catch(e){state.ai[id][lang][k]={ok:false,text:srcText};}
+    }
+    state.loading[id][k]=false;renderMain();renderModal();
+  }
+  // translate Q&A too
+  if(state.qa[id]&&state.qa[id][fromLang]&&state.qa[id][fromLang].length){
+    state.qa[id][lang]=state.qa[id][lang]||[];
+    for(const qa of state.qa[id][fromLang]){
+      const tq=lang==='zh'?`把这段问答翻译成中文，纯文本：\n问：${qa.q}\n答：${qa.a}`:`Translate this Q&A into English, plain text:\nQ: ${qa.q}\nA: ${qa.a}`;
+      try{state.qa[id][lang].push({q:'',a:cleanText(await callLLM(tq))});}catch(e){}
+    }
+    renderMain();renderModal();
+  }
+}
+function ensureAI(task){
+  const id=task.id;const cur=state.ai[id]&&state.ai[id][lang];
+  const allOk=cur&&L().sections.every(s=>cur[s[0]]&&cur[s[0]].ok);
+  if(allOk)return;
+  const other=lang==='zh'?'en':'zh';
+  const otherOk=state.ai[id]&&state.ai[id][other]&&L().sections.every(s=>state.ai[id][other][s[0]]&&state.ai[id][other][s[0]].ok);
+  if(otherOk) translateAnswers(task,other); else genAnswers(task);
+}
+async function translateTitles(tasks){
+  const need=tasks.filter(x=>!(state.titleTr[x.id]&&state.titleTr[x.id][lang]));
+  if(need.length===0)return;
+  try{
+    const listStr=need.map((x,i)=>`${i+1}. ${x.title}`).join('\n');
+    const tp=lang==='zh'?`把下面每行任务名翻译成中文，按相同顺序只输出一个JSON字符串数组，不要其它文字：\n${listStr}`
+                        :`Translate each task name below into English. Output ONLY a JSON array of strings in the same order, nothing else:\n${listStr}`;
+    let raw=await callLLM(tp);raw=raw.replace(/```json|```/g,'').trim();
+    const arr=JSON.parse(raw.slice(raw.indexOf('['),raw.lastIndexOf(']')+1));
+    need.forEach((x,i)=>{state.titleTr[x.id]=state.titleTr[x.id]||{};state.titleTr[x.id][lang]=arr[i]||x.title;});
+  }catch(e){ need.forEach(x=>{state.titleTr[x.id]=state.titleTr[x.id]||{};state.titleTr[x.id][lang]=x.title;}); }
+  renderSidebar();renderMain();renderModal();if(view==='calendar')renderCal();
+}
+window.retrySec=(id,key)=>genAnswers(state.tasks.find(x=>x.id===id),key);
+window.selectTask=id=>{state.selectedId=id;renderSidebar();renderMain();ensureAI(state.tasks.find(x=>x.id===id));};
+window.openModal=id=>{state.modalId=id;renderModal();ensureAI(state.tasks.find(x=>x.id===id));};
+window.closeModal=()=>{state.modalId=null;renderModal();};
+window.askQ=async(id)=>{
+  const task=state.tasks.find(x=>x.id===id);const q=(prompt(L().askPh)||'').trim();if(!q)return;
+  state.qa[id]=state.qa[id]||{};state.qa[id][lang]=state.qa[id][lang]||[];
+  state.qa[id][lang].push({q,a:'__loading__'});renderMain();renderModal();
+  const idx=state.qa[id][lang].length-1;
+  const who=lang==='zh'?`你在帮助助理「${profile.nick}」${profile.field?('（'+profile.field+'领域）'):''}处理任务「${displayTitle(task)}」。`:`You are helping assistant "${profile.nick}"${profile.field?(' in '+profile.field):''} with the task "${displayTitle(task)}".`;
+  const pr=(lang==='zh'?`${who}请回答她的追问，用中文，纯文本不要加粗：${q}`:`${who} Answer the follow-up in English, plain text no bold: ${q}`);
+  try{state.qa[id][lang][idx].a=cleanText(await callLLM(pr));}catch(e){state.qa[id][lang][idx].a='⚠ '+e.message;}
+  renderMain();renderModal();
+};
+
+function statusPill(task){return `<span class="pill" title="${L().clickStatus}" onclick="cycleStatus(${task.id},event)" style="background:${STATUS_COLOR[task.status]}22;border:1px solid ${STATUS_COLOR[task.status]};color:${STATUS_COLOR[task.status]}">${task.status==='done'?'✓ ':task.status==='inprogress'?'● ':'○ '}${L()[task.status]}</span>`;}
+function renderSidebar(){
+  if(!$('sidebar'))return;const t=L();
+  if(state.tasks.length===0){$('sidebar').innerHTML=`<div style="color:var(--muted);font-size:13px;padding:8px 2px;line-height:1.7">${t.noTasks}</div>`;return;}
+  const g={};state.tasks.forEach(x=>{(g[x.date]=g[x.date]||[]).push(x);});
+  let h=`<div style="font-size:11px;color:var(--muted);letter-spacing:.1em;margin-bottom:14px;padding-left:2px">${t.count(state.tasks.length)}</div>`;
+  Object.keys(g).sort().forEach(date=>{h+=`<div class="daygroup"><div class="daylabel">📅 ${date}</div>`;
+    g[date].forEach(x=>{const[bc,tc]=PRI[x.priority];const a=state.selectedId===x.id?' active':'';
+      h+=`<div class="task${a}" onclick="selectTask(${x.id})" style="opacity:${x.status==='done'?.62:1}">
+        <div class="t-top"><div class="t-title" style="text-decoration:${x.status==='done'?'line-through':'none'}">${esc(displayTitle(x))}</div>
+        <span class="badge" style="background:${bc}22;border:1px solid ${bc};color:${tc}">${t[x.priority]}</span></div>
+        <div class="t-row"><span style="color:var(--muted);font-size:12px">🕐 ${x.time}${x.due?` · ⏳${fmtDue(x.due)}`:""}</span>${statusPill(x)}
+        <span onclick="delTask(${x.id},event)" title="${t.del}" style="margin-left:auto;cursor:pointer;color:var(--muted);font-size:13px">🗑</span></div></div>`;});
+    h+=`</div>`;});
+  $('sidebar').innerHTML=h;
+}
+function detailHTML(task){const t=L();const[bc,tc]=PRI[task.priority];const cur=(state.ai[task.id]&&state.ai[task.id][lang])||{};
+  let h=`<div class="detail"><h2>${esc(displayTitle(task))}</h2>
+    <div class="d-meta"><span class="badge" style="background:${bc}22;border:1px solid ${bc};color:${tc}">${t[task.priority]}</span>${statusPill(task)}<span>${task.date} · ${task.time}</span>${task.due?`<span style="color:#ffd27a">⏳ ${t.dueLabel} ${fmtDue(task.due)}</span>`:""}</div>
+    <div class="d-note">${t.note}</div>`;
+  t.sections.forEach(([key,ic,title])=>{const d=cur[key];const ld=state.loading[task.id]&&state.loading[task.id][key];const err=d&&!d.ok;
+    let inner;if(ld)inner=`<div class="s-load"><span class="spin"></span> ${t.analyzing}</div>`;
+    else if(err)inner=`<div class="s-err">⚠ ${esc(d.text)}</div><button class="retry" onclick="retrySec(${task.id},'${key}')">${t.retry}</button>`;
+    else if(d)inner=`<div class="s-body">${esc(d.text)}</div>`;else inner=`<div class="s-load">${t.waiting}</div>`;
+    h+=`<div class="sec${err?' err-b':''}"><div class="s-head"><span style="font-size:15px">${ic}</span>${title}</div>${inner}</div>`;});
+  // Q&A
+  const qas=(state.qa[task.id]&&state.qa[task.id][lang])||[];
+  qas.forEach(qa=>{h+=`<div class="sec"><div class="s-head"><span style="font-size:15px">💬</span>${qa.q?esc(qa.q):'Q&A'}</div><div class="s-body">${qa.a==='__loading__'?`<span class="spin"></span> ${t.analyzing}`:esc(qa.a)}</div></div>`;});
+  h+=`<button class="retry" style="margin-top:12px;padding:8px 16px" onclick="askQ(${task.id})">${t.ask}</button>`;
+  return h+`</div>`;}
+function renderMain(){if(!$('main'))return;const t=L();const task=state.tasks.find(x=>x.id===state.selectedId);
+  if(!task){$('main').innerHTML=`<div class="empty"><div style="font-size:38px">✦</div><div style="font-size:18px;color:var(--accent);font-weight:700">${t.emptyT}</div><div style="font-size:13px;color:var(--muted)">${t.emptyS}</div></div>`;return;}
+  $('main').innerHTML=detailHTML(task);}
+function renderModal(){if(state.modalId==null){$('modalRoot').innerHTML='';return;}
+  const task=state.tasks.find(x=>x.id===state.modalId);if(!task){$('modalRoot').innerHTML='';return;}
+  $('modalRoot').innerHTML=`<div class="tmodal-ov" onclick="closeModal()"><div class="tmodal" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:-6px"><button onclick="closeModal()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px">✕</button></div>
+    ${detailHTML(task)}</div></div>`;}
+function renderCal(){const t=L();const mat=monthMatrix(cal.y,cal.m);
+  const byDate={};state.tasks.forEach(x=>{(byDate[x.date]=byDate[x.date]||[]).push(x);});
+  Object.values(byDate).forEach(a=>a.sort((x,z)=>x.time.localeCompare(z.time)));
+  const todayStr=dstr(now.getFullYear(),now.getMonth(),now.getDate());
+  let h=`<div class="calhead"><button class="navbtn" onclick="calNav(-1)">‹</button>
+    <div style="font-size:20px;font-weight:700;color:var(--accent);min-width:150px;text-align:center">${t.monthLabel(cal.y,cal.m)}</div>
+    <button class="navbtn" onclick="calNav(1)">›</button>
+    <button class="navbtn" style="width:auto;padding:0 14px;font-size:13px" onclick="calToday()">${t.today}</button>
+    <button onclick="openShare()" style="margin-left:auto;background:var(--accentGrad);color:var(--onAccent);border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">📤 ${t.share}</button>
+  </div><div class="calgrid"><div class="calrow">`;
+  t.weekdays.forEach(w=>h+=`<div class="calwk">${w}</div>`);h+=`</div>`;
+  mat.forEach((week,wi)=>{h+=`<div class="calrow">`;week.forEach((day,di)=>{const ds=day?dstr(cal.y,cal.m,day):null;const list=ds?(byDate[ds]||[]):[];const today=ds===todayStr;
+    const clickable=day?` onclick="expandDay('${ds}')" style="cursor:pointer;${di===6?'border-right:none;':''}${wi===mat.length-1?'border-bottom:none;':''}"`:` style="${di===6?'border-right:none;':''}${wi===mat.length-1?'border-bottom:none;':''}"`;
+    h+=`<div class="calcell${today?' today':''}"${clickable}>`;
+    if(day)h+=`<div style="font-size:12px;font-weight:${today?700:500};color:${today?'var(--accent)':'var(--muted)'};margin-bottom:4px;padding-left:3px">${day}</div>`;
+    list.slice(0,2).forEach(tk=>{const[bc]=PRI[tk.priority];
+      h+=`<div class="calchip" onclick="event.stopPropagation();openModal(${tk.id})" title="${esc(tk.title)}" style="background:${bc}22;border-left:3px solid ${bc};text-decoration:${tk.status==='done'?'line-through':'none'};opacity:${tk.status==='done'?.6:1}"><span style="color:var(--muted)">${tk.time}</span> ${esc(tk.title)}</div>`;});
+    if(list.length>2)h+=`<div style="font-size:10px;color:var(--accent);padding-left:3px;font-weight:600">${t.moreTasks(list.length-2)}</div>`;
+    h+=`</div>`;});h+=`</div>`;});
+  h+=`</div>`;$('calView').innerHTML=h;}
+window.expandDay=ds=>{const t=L();const list=state.tasks.filter(x=>x.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
+  if(list.length===0)return;
+  let h=`<div class="tmodal-ov" onclick="closeDay()"><div class="tmodal" style="max-width:440px" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:17px;font-weight:700;color:var(--accent)">📅 ${ds}</div>
+    <button onclick="closeDay()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px">✕</button></div>`;
+  list.forEach(tk=>{const[bc,tc]=PRI[tk.priority];
+    h+=`<div onclick="closeDay();openModal(${tk.id})" style="background:var(--card);border:1px solid var(--border);border-left:3px solid ${bc};border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer">
+      <div style="font-weight:600;font-size:14px;text-decoration:${tk.status==='done'?'line-through':'none'}">${esc(tk.title)}</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:5px">🕐 ${tk.time}${tk.due?` · ⏳${fmtDue(tk.due)}`:''} · <span style="color:${STATUS_COLOR[tk.status]}">${t[tk.status]}</span></div></div>`;});
+  h+=`</div></div>`;$('dayRoot').innerHTML=h;};
+window.closeDay=()=>{$('dayRoot').innerHTML='';};
+window.calNav=d=>{let m=cal.m+d;if(m<0)cal={y:cal.y-1,m:11};else if(m>11)cal={y:cal.y+1,m:0};else cal={y:cal.y,m};renderCal();};
+window.calToday=()=>{cal={y:now.getFullYear(),m:now.getMonth()};renderCal();};
+
+/* share image */
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function clip(ctx,s,maxW){if(ctx.measureText(s).width<=maxW)return s;let r=s;while(r.length>1&&ctx.measureText(r+'…').width>maxW)r=r.slice(0,-1);return r+'…';}
+function buildImg(){const t=L();const cols=7,cellW=176,cellH=116,headH=84,wkH=36,pad=26;
+  const mat=monthMatrix(cal.y,cal.m),rows=mat.length;
+  const W=pad*2+cols*cellW,H=pad*2+headH+wkH+rows*cellH,s=2;
+  const cv=document.createElement('canvas');cv.width=W*s;cv.height=H*s;const ctx=cv.getContext('2d');ctx.scale(s,s);
+  if(theme.palette){const g=ctx.createLinearGradient(0,0,W,H);const st=theme.palette.map(c=>darken(c,0.82));st.forEach((c,i)=>g.addColorStop(st.length===1?0:i/(st.length-1),c));ctx.fillStyle=g;}else ctx.fillStyle=theme.bg;
+  ctx.fillRect(0,0,W,H);ctx.textBaseline='top';
+  ctx.fillStyle=theme.accent;ctx.font="700 30px 'Helvetica Neue',Arial,sans-serif";ctx.fillText('✦ '+t.monthLabel(cal.y,cal.m),pad,pad+6);
+  ctx.fillStyle=theme.muted;ctx.font="500 14px Arial,sans-serif";ctx.fillText(t.a_title.replace('✦ ',''),pad,pad+48);
+  const gx=pad,gy=pad+headH;ctx.font="700 14px Arial,sans-serif";ctx.textAlign='center';
+  for(let c=0;c<cols;c++){ctx.fillStyle=theme.muted;ctx.fillText(t.weekdays[c],gx+c*cellW+cellW/2,gy+10);}
+  ctx.textAlign='left';
+  const byDate={};state.tasks.forEach(x=>{(byDate[x.date]=byDate[x.date]||[]).push(x);});
+  Object.values(byDate).forEach(a=>a.sort((x,z)=>x.time.localeCompare(z.time)));
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const x=gx+c*cellW,yy=gy+wkH+r*cellH,day=mat[r][c];
+    ctx.strokeStyle=theme.border;ctx.lineWidth=1;ctx.strokeRect(x,yy,cellW,cellH);if(!day)continue;
+    ctx.fillStyle=theme.text;ctx.font="600 14px Arial,sans-serif";ctx.fillText(String(day),x+10,yy+8);
+    const ds=dstr(cal.y,cal.m,day),list=byDate[ds]||[];let cy=yy+30;
+    list.slice(0,3).forEach(tk=>{const[bc]=PRI[tk.priority];ctx.fillStyle=bc+'44';roundRect(ctx,x+8,cy,cellW-16,22,6);ctx.fill();
+      ctx.fillStyle=theme.text;ctx.font="500 11px Arial,sans-serif";ctx.fillText(clip(ctx,tk.time+' '+tk.title,cellW-24),x+13,cy+5);cy+=26;});
+    if(list.length>3){ctx.fillStyle=theme.muted;ctx.font="500 11px Arial,sans-serif";ctx.fillText(t.moreTasks(list.length-3),x+13,cy+2);}}
+  return cv.toDataURL('image/png');}
+window.openShare=()=>{const t=L();const url=buildImg();window.__shareUrl=url;
+  $('shareRoot').innerHTML=`<div class="sharemodal-ov" onclick="closeShare()"><div class="sharemodal" onclick="event.stopPropagation()">
+    <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px">${t.shareTitle}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${t.shareTip}</div>
+    <img src="${url}" style="width:100%;border-radius:10px;border:1px solid var(--border);margin-bottom:14px"/>
+    <div style="display:flex;gap:10px">
+      <button onclick="nativeShare()" style="flex:1;background:var(--accentGrad);color:var(--onAccent);border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:700;cursor:pointer">📤 ${t.nativeShare}</button>
+      <button onclick="dlImg()" style="flex:1;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:10px;font-size:13px;font-weight:600;cursor:pointer">⬇ ${t.download}</button>
+      <button onclick="closeShare()" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:13px;cursor:pointer">${t.close}</button>
+    </div></div></div>`;};
+window.closeShare=()=>{$('shareRoot').innerHTML='';};
+window.dlImg=()=>{const a=document.createElement('a');a.href=window.__shareUrl;a.download='calendar.png';a.click();};
+window.nativeShare=async()=>{try{const blob=await(await fetch(window.__shareUrl)).blob();const file=new File([blob],'calendar.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:L().shareTitle});else dlImg();}catch(e){dlImg();}};
+
+/* boot */
+applyLang();
+if(state.conn)enterApp();else $('connOverlay').style.display='flex';
+</script>
+</body>
+</html>
