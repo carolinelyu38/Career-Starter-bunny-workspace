@@ -6,7 +6,8 @@ An AI task companion for career starters
 What is this?
 Starting a new job is overwhelming: you get tasks you have never done before, and no one has time to explain them. Bunny Workspace is a lightweight, single-file web app that does two things at once. It keeps your schedule, and for every task it tells you what it is, how to do it, what resources and tools to use, and gives you a reusable template. You can keep asking follow-up questions until it clicks.
 It runs on your own AI key (bring your own key). The smarter the model you connect, the better the answers.
-Features
+
+Features：
 1. Built for newcomers, not just a to-do list
 Every task gets a five-part guide: what it is, how to do it (steps), useful references, recommended tools, and a reusable template. The answer is generated once and kept fixed, with an Ask button so you can dig deeper whenever you want.
  
